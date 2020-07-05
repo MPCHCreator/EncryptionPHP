@@ -3,20 +3,17 @@
 class EncryptionPHP
 {
     /**
-     * Almacena la llave de encriptacion
      * @var string
      */
     private $key;
     /**
-     * Almacena el nombre de la tabla
      * @var string
      */
     private $tableName;
     /**
-     * Almacena los nombres de las columnas
      * @var array 
      */
-    private $colums;
+    private $columNames;
     /**
      * @var PDO
      */
@@ -74,7 +71,7 @@ class EncryptionPHP
      * @return void
      */
     public function setColums($colums){
-        $this->colums = $colums;
+        $this->columNames = $colums;
     }
 
     /**
@@ -83,12 +80,13 @@ class EncryptionPHP
      * @return void
      */
     public function encryptDB($values_p){
-
-        $colums = $this->concat($this->colums);
-        $value = $this->concat($values_p, $this->key);
-        $sentencia = $this->conexion->prepare("CALL encrypt(\"$this->tableName\",\"$colums\",\"$value\")");
+        # Concatenamos los nombres de las columnas
+        $colums = $this->concat($this->columNames);
+        # Concatenamos los valores recibidos
+        $values = $this->concat($values_p, $this->key);
+        # Llamamos y ejecutamos al procedimiento almacenado
+        $sentencia = $this->conexion->prepare("CALL encrypt(\"$this->tableName\",\"$colums\",\"$values\")");
         $sentencia->execute();
-        
     }
 
     /**
@@ -98,8 +96,10 @@ class EncryptionPHP
      * @return string
      */
     function concat($array, $key = null){
+        # Concatena los valores dentro del array
         for ($i = 0, $c = ""; $i < count($array); $i++) {
             if ($i == 0) {
+                # si existe una llave añade la función aes_encrypt a los valores concatenados
                 if($key == null){
                     $c = $array[$i];
                 }else{
