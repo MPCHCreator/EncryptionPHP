@@ -13,7 +13,7 @@ class EncryptionPHP
     /**
      * @var array 
      */
-    private $columNames;
+    private $columnNames;
     /**
      * @var PDO
      */
@@ -71,7 +71,7 @@ class EncryptionPHP
      * @return void
      */
     public function setColums($colums){
-        $this->columNames = $colums;
+        $this->columnNames = $colums;
     }
 
     /**
@@ -81,11 +81,11 @@ class EncryptionPHP
      */
     public function encryptDB($values_p){
         # Concatenamos los nombres de las columnas
-        $colums = $this->concat($this->columNames);
+        $columns = $this->concat($this->columnNames);
         # Concatenamos los valores recibidos
-        $values = $this->concat($values_p, $this->key);
+        $values = $this->concat($values_p);
         # Llamamos y ejecutamos al procedimiento almacenado
-        $sentencia = $this->conexion->prepare("CALL encrypt(\"$this->tableName\",\"$colums\",\"$values\")");
+        $sentencia = $this->conexion->prepare("CALL encrypt(\"$this->tableName\",\"$columns\",\"$values\",\"$this->key\")");
         $sentencia->execute();
     }
 
@@ -99,24 +99,23 @@ class EncryptionPHP
         # Concatena los valores dentro del array
         for ($i = 0, $c = ""; $i < count($array); $i++) {
             if ($i == 0) {
-                # si existe una llave añade la función aes_encrypt a los valores concatenados
-                if($key == null){
                     $c = $array[$i];
-                }else{
-                    $c = "hex(aes_encrypt('$array[$i]','" . $key . "'))";
-                }
             } else {
-                if($key == null){
                     $c = $c . "," . $array[$i];
-                }else{
-                    $c = $c . "," . "hex(aes_encrypt('$array[$i]','" . $key . "'))";
-                }   
             }
         }
         return $c;
     }
 
-    public static function desencryptDB(){
+    public function desencryptDB(){
+        # Concatenamos los nombres de las columnas
+        $columns = $this->concat($this->columnNames);
+        # Llamamos y ejecutamos al procedimiento almacenado
+        $sentencia = $this->conexion->prepare("call desencrypt(\"$this->tableName\",\"$columns\",\"$this->key\")");
+        $sentencia->execute();
+        # Guardamos el resultado en un arreglo numerico
+        $result = $sentencia->fetchAll(PDO::FETCH_NUM);
+        return $result;
     }
 
     public static function encode($data, $key){
