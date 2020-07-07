@@ -63,16 +63,27 @@ class EncryptionPHP
      */
     public function setTableName($tableName){
         $this->tableName = $tableName;
+        $statement = $this->conexion->prepare("SELECT * from $tableName");
+        $statement->execute();
+        # Obtenemos los nombres de las columnas
+        for ($i = 0; $i < $statement->columnCount(); $i++) {
+            $col = $statement->getColumnMeta($i);
+            $columns[] = $col['name'];
+        }
+        # Omitimos la columna “id”
+        $this->columnNames = array_diff($columns, array('id'));
+        # Indexamos nuevamente el array (índice empieza de 0)
+        $this->columnNames = array_values($this->columnNames);
     }
 
-    /**
-     * @param array $colums
-     * 
-     * @return void
-     */
-    public function setColums($colums){
-        $this->columnNames = $colums;
-    }
+    // /**
+    //  * @param array $colums
+    //  * 
+    //  * @return void
+    //  */
+    // public function setColums($colums){
+    //     $this->columnNames = $colums;
+    // }
 
     /**
      * @param array $values_p
@@ -95,7 +106,7 @@ class EncryptionPHP
      * 
      * @return string
      */
-    function concat($array, $key = null){
+    function concat($array){
         # Concatena los valores dentro del array
         for ($i = 0, $c = ""; $i < count($array); $i++) {
             if ($i == 0) {
