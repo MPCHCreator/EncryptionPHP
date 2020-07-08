@@ -30,10 +30,9 @@ class EncryptionPHP
      * @param null $tableName
      * @param null $colums
      */
-    public function __construct($keyDirectory = null, $tableName = null, $colums = null){
+    public function __construct($keyDirectory = null, $tableName = null){
         if($keyDirectory!==null):$this->key = file_get_contents($keyDirectory);endif;
         $this->tableName = $tableName;
-        $this->colums = $colums;
     }
 
     /**
@@ -80,16 +79,9 @@ class EncryptionPHP
         $this->columnNames = array_diff($columns, array('id'));
         # Indexamos nuevamente el array (índice empieza de 0)
         $this->columnNames = array_values($this->columnNames);
+        # Concatenamos los nombres de las columnas
+        $this->columnNames = implode(",", $this->columnNames);
     }
-
-    // /**
-    //  * @param array $columns
-    //  * 
-    //  * @return void
-    //  */
-    // public function setColumns($columns){
-    //     $this->columnNames = $columns;
-    // }
 
     /**
      * @param array $values_p
@@ -97,41 +89,19 @@ class EncryptionPHP
      * @return void
      */
     public function encryptDB($values_p){
-        # Concatenamos los nombres de las columnas
-        $columns = $this->concat($this->columnNames);
-        # Concatenamos los valores recibidos
-        $values = $this->concat($values_p);
+         # Concatenamos los valores recibidos
+        $values = implode(",", $values_p);
         # Llamamos y ejecutamos al procedimiento almacenado
-        $sentencia = $this->conexion->prepare("CALL encrypt(\"$this->tableName\",\"$columns\",\"$values\",\"$this->key\")");
+        $sentencia = $this->conexion->prepare("CALL encrypt(\"$this->tableName\",\"$this->columnNames\",\"$values\",\"$this->key\")");
         $sentencia->execute();
-    }
-
-    /**
-     * @param array $array
-     * @param null $key
-     * 
-     * @return string
-     */
-    function concat($array){
-        # Concatena los valores dentro del array
-        for ($i = 0, $c = ""; $i < count($array); $i++) {
-            if ($i == 0) {
-                    $c = $array[$i];
-            } else {
-                    $c = $c . "," . $array[$i];
-            }
-        }
-        return $c;
     }
 
     /**
      * @return array
      */
     public function decryptDB(){
-        # Concatenamos los nombres de las columnas
-        $columns = $this->concat($this->columnNames);
         # Llamamos y ejecutamos al procedimiento almacenado
-        $sentencia = $this->conexion->prepare("call decrypt(\"$this->tableName\",\"$columns\",\"$this->key\")");
+        $sentencia = $this->conexion->prepare("call decrypt(\"$this->tableName\",\"$this->columnNames\",\"$this->key\")");
         $sentencia->execute();
         # Guardamos el resultado en un arreglo numerico
         $result = $sentencia->fetchAll(PDO::FETCH_NUM);
