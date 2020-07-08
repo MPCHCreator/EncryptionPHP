@@ -1,5 +1,11 @@
 <?php
 
+require_once "vendor/autoload.php";
+
+use Defuse\Crypto\Crypto;
+use Defuse\Crypto\Key;
+use Defuse\Crypto\Key\Exception\WrongKeyOrModifiedCiphertextException;
+
 class EncryptionPHP
 {
     /**
@@ -24,8 +30,8 @@ class EncryptionPHP
      * @param null $tableName
      * @param null $colums
      */
-    public function __construct($key = null, $tableName = null, $colums = null){
-        $this->key = $key;
+    public function __construct($keyDirectory = null, $tableName = null, $colums = null){
+        if($keyDirectory!==null):$this->key = file_get_contents($keyDirectory);endif;
         $this->tableName = $tableName;
         $this->colums = $colums;
     }
@@ -52,8 +58,8 @@ class EncryptionPHP
      * 
      * @return void
      */
-    public function setKey($key){
-        $this->key = $key;
+    public function setKeyDirectory($keyDirectory){
+        $this->key = file_get_contents($keyDirectory);
     }
 
     /**
@@ -77,12 +83,12 @@ class EncryptionPHP
     }
 
     // /**
-    //  * @param array $colums
+    //  * @param array $columns
     //  * 
     //  * @return void
     //  */
-    // public function setColums($colums){
-    //     $this->columnNames = $colums;
+    // public function setColumns($columns){
+    //     $this->columnNames = $columns;
     // }
 
     /**
@@ -118,20 +124,50 @@ class EncryptionPHP
         return $c;
     }
 
-    public function desencryptDB(){
+    /**
+     * @return array
+     */
+    public function decryptDB(){
         # Concatenamos los nombres de las columnas
         $columns = $this->concat($this->columnNames);
         # Llamamos y ejecutamos al procedimiento almacenado
-        $sentencia = $this->conexion->prepare("call desencrypt(\"$this->tableName\",\"$columns\",\"$this->key\")");
+        $sentencia = $this->conexion->prepare("call decrypt(\"$this->tableName\",\"$columns\",\"$this->key\")");
         $sentencia->execute();
         # Guardamos el resultado en un arreglo numerico
         $result = $sentencia->fetchAll(PDO::FETCH_NUM);
         return $result;
     }
 
-    public static function encode($data, $key){
+    /**
+     * @param string $data
+     * @param string $keyDirectory
+     * 
+     * @return string
+     */
+    public static function encode($data, $keyDirectory) {
+        # obtenemos la clave que se encuentra en el directorio 
+        $contenido = file_get_contents($keyDirectory);
+        $key = Key::loadFromAsciiSafeString($contenido);
+        # encriptamos los datos y le asignamos su llave
+        $mensaje = Crypto::encrypt($data, $key);
+        # retornamos el mensaje encriptado
+        return $mensaje;
     }
-
-    public static function decode($data, $key){
+        
+    
+    /**
+     * @param string $mensajeCifrado
+     * @param string $keyDirectory
+     * 
+     * @return void
+     */
+    public static function decode($mensajeCifrado, $keyDirectory) {
+        # obtenemos la clave que se encuentra en el directorio 
+        $contenido = file_get_contents($keyDirectory);
+        $key = Key::loadFromAsciiSafeString($contenido);
+        # desencriptamos los datos y proporcionamos su llave correspondiente
+        $mensajeOriginal = Crypto::decrypt($mensajeCifrado, $key);
+        # retornamos el mensaje desencriptado
+        return $mensajeOriginal;
     }
 }
